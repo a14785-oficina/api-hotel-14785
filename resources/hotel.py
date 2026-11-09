@@ -1,6 +1,7 @@
 from flask_restful import Resource, reqparse
 from models import hotel
 from models.hotel import HotelModel
+from flask_jwt_extended import jwt_required
 
 # hotels = [
 #     { "hotel_id": "paradise", "name": "Paradise Hotel", "stars": 4.7, "daily": 123.99, "city": "Porto" },
@@ -17,23 +18,10 @@ class Hotels(Resource):
 # List, insert, update and delete a hotel in specific
 class Hotel(Resource):
     args = reqparse.RequestParser()
-    args.add_argument(
-        "name", type=str, required=True, help="The field 'name' cannot be left blank!")
-    args.add_argument(
-        "stars",
-        type=float,
-        required=True,
-        help="The field 'stars' cannot be left blank!",
-    )
-    args.add_argument(
-        "daily",
-        type=float,
-        required=True,
-        help="The field 'daily' cannot be left blank!",
-    )
-    args.add_argument(
-        "city", type=str, required=True, help="The field 'city' cannot be left blank!"
-    )
+    args.add_argument("name", type=str, required=True, help="The field 'name' cannot be left blank!")
+    args.add_argument("stars", type=float, required=True, help="The field 'stars' cannot be left blank!")
+    args.add_argument("daily", type=float,  required=True, help="The field 'daily' cannot be left blank!")
+    args.add_argument("city", type=str, required=True, help="The field 'city' cannot be left blank!")
 
     def get(self, id_hotel):
         hotel_found = HotelModel.find_hotel(id_hotel)
@@ -41,6 +29,7 @@ class Hotel(Resource):
             return hotel_found.json(), 200  # OK
         return {"message": "Hotel was not found!"}, 404  # Not Found
 
+    @jwt_required()
     def post(self, id_hotel):
         data = Hotel.args.parse_args()  # Dictionary with the data sent in the request
         hotel_found = HotelModel.find_hotel(id_hotel)
@@ -50,21 +39,22 @@ class Hotel(Resource):
         new_hotel.save_hotel()
         return new_hotel.json(), 200  # Created
 
+    @jwt_required()
     def put(self, id_hotel):
         data = Hotel.args.parse_args()  # Dictionary with the data sent in the request
         hotel_found = HotelModel.find_hotel(id_hotel)
         if hotel_found:
+            list = [data for data in data.value()]
             hotel_updated = HotelModel(id_hotel, **data)
             hotel_updated.update_hotel(**data)
             hotel_updated.save_hotel()
             return hotel_updated.json(), 200  # OK
         new_hotel = {"hotel_id": id_hotel, **data}
         hotels.append(new_hotel)
-        return new_hotel.json(), 201  # Created
+        return new_hotel.json(), 200  # Created
 
-
-    def delete(self, id_hotel) -> dict[str, str]:
-        """Delete the hotel with the specified ID."""
+    @jwt_required()
+    def delete(self, id_hotel) -> dict[str, str]: # Delete the hotel with the specified ID.
         hotel_found = HotelModel.find_hotel(id_hotel)
         if hotel_found:
             hotel_found.delete_hotel()
